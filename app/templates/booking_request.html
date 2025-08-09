@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Book Your Stay - Galveston Rental{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Request Your Booking</h3>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">Please fill out the form below to request your booking. We'll review your request and respond within 24 hours with confirmation and next steps.</p>
+                    
+                    <form id="booking-form" novalidate>
+                        <!-- Guest Information -->
+                        <h5 class="mb-3">Guest Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="guest-name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="guest-name" name="guest_name" required>
+                                <div class="invalid-feedback">Please provide your full name.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="guest-email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="guest-email" name="guest_email" required>
+                                <div class="invalid-feedback">Please provide a valid email address.</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="guest-phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="guest-phone" name="guest_phone" placeholder="Optional">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="num-guests" class="form-label">Number of Guests *</label>
+                                <select class="form-select" id="num-guests" name="num_guests" required>
+                                    <option value="">Select...</option>
+                                    <option value="1">1 Guest</option>
+                                    <option value="2">2 Guests</option>
+                                    <option value="3">3 Guests</option>
+                                    <option value="4">4 Guests</option>
+                                    <option value="5">5 Guests</option>
+                                    <option value="6">6 Guests</option>
+                                    <option value="7">7+ Guests</option>
+                                </select>
+                                <div class="invalid-feedback">Please select the number of guests.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Booking Dates -->
+                        <h5 class="mb-3">Booking Dates</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start-date" class="form-label">Check-in Date *</label>
+                                <input type="date" class="form-control" id="start-date" name="start_date" required>
+                                <div class="invalid-feedback">Please select a check-in date.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end-date" class="form-label">Check-out Date *</label>
+                                <input type="date" class="form-control" id="end-date" name="end_date" required>
+                                <div class="invalid-feedback">Please select a check-out date.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div id="date-info" class="text-muted small"></div>
+                        </div>
+                        
+                        <!-- Special Requests -->
+                        <h5 class="mb-3">Special Requests</h5>
+                        <div class="mb-3">
+                            <label for="special-requests" class="form-label">Any special requests or notes?</label>
+                            <textarea class="form-control" id="special-requests" name="special_requests" rows="3" placeholder="Early check-in, late checkout, celebration, accessibility needs, etc. (optional)"></textarea>
+                        </div>
+                        
+                        <!-- Availability Check -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" onclick="checkAvailabilityInline()">
+                                Check Availability First
+                            </button>
+                            <div id="availability-check-result" class="mt-2"></div>
+                        </div>
+                        
+                        <!-- Terms -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms-agree" required>
+                                <label class="form-check-label" for="terms-agree">
+                                    I agree to the booking terms and conditions *
+                                </label>
+                                <div class="invalid-feedback">You must agree to the terms and conditions.</div>
+                            </div>
+                            <small class="text-muted">By submitting this request, you understand that this is not a confirmed booking. We will review your request and contact you within 24 hours.</small>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                Submit Booking Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel">Booking Request Submitted!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4>Thank You!</h4>
+                    <p>Your booking request has been successfully submitted. Here's what happens next:</p>
+                    <ol class="text-start">
+                        <li>We'll review your request within 24 hours</li>
+                        <li>You'll receive an email confirmation if approved</li>
+                        <li>Payment instructions will be provided</li>
+                        <li>Check-in details will be sent before your arrival</li>
+                    </ol>
+                    <p><strong>Booking Reference:</strong> <span id="booking-reference"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal" onclick="window.location.href='/'">
+                    Return to Home
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('booking-form');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const dateInfo = document.getElementById('date-info');
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.setAttribute('min', today);
+    endDateInput.setAttribute('min', today);
+    
+    // Pre-populate dates from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('checkin')) {
+        startDateInput.value = urlParams.get('checkin');
+        updateMinCheckout();
+    }
+    if (urlParams.get('checkout')) {
+        endDateInput.value = urlParams.get('checkout');
+        updateDateInfo();
+    }
+    if (urlParams.get('guests')) {
+        document.getElementById('num-guests').value = urlParams.get('guests');
+    }
+    
+    // Update checkout minimum date when checkin changes
+    startDateInput.addEventListener('change', function() {
+        updateMinCheckout();
+        updateDateInfo();
+    });
+    
+    endDateInput.addEventListener('change', updateDateInfo);
+    
+    function updateMinCheckout() {
+        if (startDateInput.value) {
+            const checkinDate = new Date(startDateInput.value);
+            const minCheckout = new Date(checkinDate);
+            minCheckout.setDate(minCheckout.getDate() + 1);
+            endDateInput.setAttribute('min', minCheckout.toISOString().split('T')[0]);
+        }
+    }
+    
+    function updateDateInfo() {
+        if (startDateInput.value && endDateInput.value) {
+            const checkin = new Date(startDateInput.value);
+            const checkout = new Date(endDateInput.value);
+            const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+            
+            if (nights > 0) {
+                const checkinStr = checkin.toLocaleDateString('en-US', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                const checkoutStr = checkout.toLocaleDateString('en-US', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                
+                dateInfo.innerHTML = `
+                    <strong>Stay Summary:</strong><br>
+                    Check-in: ${checkinStr}<br>
+                    Check-out: ${checkoutStr}<br>
+                    Duration: ${nights} night${nights !== 1 ? 's' : ''}
+                `;
+            }
+        } else {
+            dateInfo.innerHTML = '';
+        }
+    }
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        
+        try {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+            
+            const formData = new FormData(form);
+            
+            const response = await fetch('/booking/request', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                document.getElementById('booking-reference').textContent = `#${result.booking_id}`;
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+                form.reset();
+                form.classList.remove('was-validated');
+                dateInfo.innerHTML = '';
+            } else if (response.status === 409) {
+                // Availability conflict
+                let message = result.error;
+                if (result.conflicts && result.conflicts.length > 0) {
+                    message += '<br><small>Conflicts: ' + result.conflicts.map(c => c.summary).join(', ') + '</small>';
+                }
+                
+                document.getElementById('availability-check-result').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Dates Not Available:</strong><br>
+                        ${message}
+                    </div>
+                `;
+            } else {
+                // Validation or other errors
+                if (result.errors) {
+                    let errorMessage = 'Please correct the following errors:<ul>';
+                    result.errors.forEach(error => {
+                        errorMessage += `<li>${error}</li>`;
+                    });
+                    errorMessage += '</ul>';
+                    
+                    document.getElementById('availability-check-result').innerHTML = `
+                        <div class="alert alert-danger">${errorMessage}</div>
+                    `;
+                } else {
+                    document.getElementById('availability-check-result').innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> ${result.error || 'An error occurred. Please try again.'}
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            document.getElementById('availability-check-result').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> Unable to submit your request. Please try again or contact us directly.
+                </div>
+            `;
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    });
+});
+
+async function checkAvailabilityInline() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    const resultDiv = document.getElementById('availability-check-result');
+    
+    if (!startDate || !endDate) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Please select both check-in and check-out dates first.</div>';
+        return;
+    }
+    
+    if (new Date(startDate) >= new Date(endDate)) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Check-out date must be after check-in date.</div>';
+        return;
+    }
+    
+    try {
+        showLoading(resultDiv);
+        
+        const response = await apiCall(`/api/availability?start=${startDate}&end=${endDate}`);
+        
+        if (response.available) {
+            const nights = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>✅ Available!</strong><br>
+                    Your selected dates are available for ${nights} night${nights !== 1 ? 's' : ''}.
+                    You can proceed with your booking request.
+                </div>
+            `;
+        } else {
+            let conflictText = '';
+            if (response.conflicts && response.conflicts.length > 0) {
+                conflictText = '<br><small>Existing bookings: ' + 
+                              response.conflicts.map(c => c.summary).join(', ') + '</small>';
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>❌ Not Available</strong><br>
+                    Sorry, your selected dates are not available.${conflictText}
+                    <br><a href="/calendar" class="btn btn-sm btn-outline-primary mt-2">View Calendar</a>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <strong>Error:</strong> Unable to check availability. Please try again.
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}
