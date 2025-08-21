@@ -133,7 +133,7 @@ def create_simple_app():
 
 if __name__ == '__main__':
     app = create_simple_app()
-    port = int(os.getenv('PORT', 8080))
+    port = int(os.getenv('PORT', 80))
     
     print("🏖️  GALVESTON RESERVATION SYSTEM (Simple Mode)")
     print("=" * 50)

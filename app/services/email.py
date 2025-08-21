@@ -273,3 +273,206 @@ class EmailService:
         except Exception as e:
             print(f"Error sending sync alert: {e}")
             return False
+        
+    def send_booking_approval_request(self, booking_request):
+        """Send approval request email to admin for new booking"""
+        try:
+            approval_token = self.generate_approval_token(booking_request.id)
+            rejection_token = self.generate_rejection_token(booking_request.id)
+            
+            approve_url = f"{self.base_url}/api/booking/approve/{approval_token}"
+            reject_url = f"{self.base_url}/api/booking/reject/{rejection_token}"
+            
+            subject = f"BOOKING APPROVAL NEEDED - {booking_request.start_date.strftime('%m/%d')} to {booking_request.end_date.strftime('%m/%d')}"
+            
+            duration = (booking_request.end_date - booking_request.start_date).days
+            
+            html_body = f"""
+            <h2>🏠 New Booking Request Needs Approval</h2>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>📅 Booking Details</h3>
+                <p><strong>Check-in:</strong> {booking_request.start_date.strftime('%A, %B %d, %Y')} at 3:00 PM</p>
+                <p><strong>Check-out:</strong> {booking_request.end_date.strftime('%A, %B %d, %Y')} at 11:00 AM</p>
+                <p><strong>Duration:</strong> {duration} nights</p>
+                <p><strong>Guests:</strong> {booking_request.num_guests} people</p>
+                {f'<p><strong>Special Requests:</strong> {booking_request.special_requests}</p>' if booking_request.special_requests else ''}
+            </div>
+            
+            <div style="background-color: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>👤 Guest Contact (Private)</h3>
+                <p><strong>Name:</strong> {booking_request.guest_name}</p>
+                <p><strong>Email:</strong> {booking_request.guest_email}</p>
+                <p><strong>Phone:</strong> {booking_request.guest_phone or 'Not provided'}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <h3>⚡ Quick Actions</h3>
+                <p>
+                    <a href="{approve_url}" 
+                       style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin-right: 15px; display: inline-block; font-weight: bold;">
+                       ✅ APPROVE BOOKING
+                    </a>
+                    
+                    <a href="{reject_url}" 
+                       style="background-color: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+                       ❌ REJECT BOOKING
+                    </a>
+                </p>
+                <p><small>Links expire in 48 hours</small></p>
+            </div>
+            
+            <p><small>Request ID: {booking_request.id} | Submitted: {booking_request.created_at.strftime('%B %d, %Y at %I:%M %p') if hasattr(booking_request, 'created_at') else 'Just now'}</small></p>
+            """
+            
+            msg = Message(
+                subject=subject,
+                recipients=['livingbayfront@gmail.com'],
+                html=html_body
+            )
+            
+            mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending approval request: {e}")
+            return False
+    
+    def send_booking_notifications(self, booking_request, notification_emails):
+        """Send booking notifications to all parties (without guest name for privacy)"""
+        try:
+            duration = (booking_request.end_date - booking_request.start_date).days
+            
+            subject = f"Guest Arrival Scheduled - {booking_request.start_date.strftime('%m/%d')} to {booking_request.end_date.strftime('%m/%d')}"
+            
+            html_body = f"""
+            <h2>🏠 Guest Booking Confirmed</h2>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #28a745;">
+                <h3>📅 Booking Details</h3>
+                <p><strong>Check-in:</strong> {booking_request.start_date.strftime('%A, %B %d, %Y')} at 3:00 PM</p>
+                <p><strong>Check-out:</strong> {booking_request.end_date.strftime('%A, %B %d, %Y')} at 11:00 AM</p>
+                <p><strong>Duration:</strong> {duration} nights</p>
+                <p><strong>Number of Guests:</strong> {booking_request.num_guests} people</p>
+            </div>
+            
+            <p><small>Booking ID: {booking_request.id}</small></p>
+            """
+            
+            for email in notification_emails:
+                if email.strip():
+                    msg = Message(
+                        subject=subject,
+                        recipients=[email.strip()],
+                        html=html_body
+                    )
+                    mail.send(msg)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error sending booking notifications: {e}")
+            return False
+    
+    def send_guest_confirmation(self, booking_request):
+        """Send confirmation email to guest"""
+        try:
+            duration = (booking_request.end_date - booking_request.start_date).days
+            
+            subject = f"Booking Confirmed! Galveston Bayfront Retreat - {booking_request.start_date.strftime('%m/%d')}"
+            
+            html_body = f"""
+            <h2>🎉 Your Booking is Confirmed!</h2>
+            
+            <p>Dear {booking_request.guest_name},</p>
+            
+            <p>Great news! Your booking at the Galveston Bayfront Retreat has been approved and confirmed.</p>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #28a745;">
+                <h3>📅 Your Reservation Details</h3>
+                <p><strong>Property:</strong> Galveston Bayfront Retreat</p>
+                <p><strong>Check-in:</strong> {booking_request.start_date.strftime('%A, %B %d, %Y')} at 3:00 PM</p>
+                <p><strong>Check-out:</strong> {booking_request.end_date.strftime('%A, %B %d, %Y')} at 11:00 AM</p>
+                <p><strong>Duration:</strong> {duration} nights</p>
+                <p><strong>Guests:</strong> {booking_request.num_guests} people</p>
+            </div>
+            
+            <div style="background-color: #cce5ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #007bff;">
+                <h3>📍 What's Next?</h3>
+                <ul>
+                    <li>🔑 <strong>Access Details:</strong> You'll receive check-in instructions 24 hours before arrival</li>
+                    <li>📞 <strong>Questions:</strong> Contact us at livingbayfront@gmail.com</li>
+                    <li>🏖️ <strong>Local Info:</strong> Galveston tips and recommendations coming soon!</li>
+                </ul>
+            </div>
+            
+            <p>We're excited to host you at our beautiful bayfront property! If you have any questions, don't hesitate to reach out.</p>
+            
+            <p>Best regards,<br>
+            The Galveston Bayfront Team</p>
+            
+            <p><small>Booking Reference: #{booking_request.id}</small></p>
+            """
+            
+            msg = Message(
+                subject=subject,
+                recipients=[booking_request.guest_email],
+                html=html_body
+            )
+            
+            mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending guest confirmation: {e}")
+            return False
+    
+    def send_guest_rejection(self, booking_request):
+        """Send rejection email to guest"""
+        try:
+            subject = f"Booking Update - Galveston Bayfront Retreat"
+            
+            html_body = f"""
+            <h2>Booking Update</h2>
+            
+            <p>Dear {booking_request.guest_name},</p>
+            
+            <p>Thank you for your interest in the Galveston Bayfront Retreat.</p>
+            
+            <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #dc3545;">
+                <p>Unfortunately, we're unable to accommodate your booking request for:</p>
+                <ul>
+                    <li><strong>Dates:</strong> {booking_request.start_date.strftime('%B %d')} - {booking_request.end_date.strftime('%B %d, %Y')}</li>
+                    <li><strong>Guests:</strong> {booking_request.num_guests} people</li>
+                </ul>
+            </div>
+            
+            <div style="background-color: #cce5ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #007bff;">
+                <h3>🔄 Alternative Options</h3>
+                <ul>
+                    <li>📅 <strong>Check our calendar</strong> for available dates at str.ptpsystem.com</li>
+                    <li>📞 <strong>Contact us</strong> at livingbayfront@gmail.com for assistance finding alternative dates</li>
+                    <li>🔔 <strong>Flexible dates?</strong> Let us know and we can suggest nearby available periods</li>
+                </ul>
+            </div>
+            
+            <p>We appreciate your understanding and hope to accommodate you for a future stay!</p>
+            
+            <p>Best regards,<br>
+            The Galveston Bayfront Team</p>
+            
+            <p><small>Request Reference: #{booking_request.id}</small></p>
+            """
+            
+            msg = Message(
+                subject=subject,
+                recipients=[booking_request.guest_email],
+                html=html_body
+            )
+            
+            mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending guest rejection: {e}")
+            return False

@@ -7,9 +7,10 @@
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FullCalendar CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.css" rel="stylesheet">
+    
+    <!-- FullCalendar CSS - Updated to match JS version -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <style>
         .hero-section {
@@ -26,6 +27,56 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             padding: 20px;
+        }
+        
+        /* Enhanced FullCalendar Event Styling */
+        .fc-event {
+            background-color: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
+            opacity: 1 !important;
+        }
+        
+        .fc-event:hover {
+            background-color: #c82333 !important;
+            border-color: #bd2130 !important;
+        }
+        
+        .fc-event-title {
+            color: #ffffff !important;
+            font-weight: bold !important;
+            font-size: 11px !important;
+        }
+        
+        .booking-event {
+            background: #dc3545 !important;
+            border: 2px solid #dc3545 !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
+            opacity: 1 !important;
+            z-index: 10 !important;
+        }
+        
+        .fc-daygrid-event {
+            background-color: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: #ffffff !important;
+        }
+        
+        .fc-h-event {
+            background-color: #dc3545 !important;
+            border-color: #dc3545 !important;
+        }
+        
+        /* Force visibility for all event types */
+        .fc .fc-daygrid-event-harness {
+            margin-top: 2px !important;
+        }
+        
+        .fc-daygrid-event .fc-event-main {
+            color: #ffffff !important;
+            font-weight: bold !important;
         }
         
         .booking-form {
@@ -159,10 +210,9 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.8/main.js"></script>
+    
+    <!-- FullCalendar JS - Updated versions -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     
     <!-- Custom JavaScript -->
     <script>

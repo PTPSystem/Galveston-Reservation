@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Calendar Page Header -->
+<section class="py-4" style="background-color: #f8f9fa;">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="h2 mb-2">📅 Full Calendar View</h1>
+                <p class="mb-0 text-muted">Complete availability overview for Bayfront Retreat</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Full Calendar Section -->
+<section class="py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div id="full-calendar"></div>
+                        
+                        <div class="mt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div style="width: 16px; height: 16px; margin-right: 8px; background-color: #28a745; border-radius: 3px;"></div>
+                                        <small class="me-3">Available</small>
+                                        <div style="width: 16px; height: 16px; margin-right: 8px; background-color: #dc3545; border-radius: 3px;"></div>
+                                        <small>Booked</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <small class="text-muted">Real-time sync with Google Calendar</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">📋 Quick Booking</h6>
+                        <p class="card-text small">Click on an available date to start booking</p>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">Go to Booking Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">🔄 Sync Status</h6>
+                        <p class="card-text small">Calendar synced with rental website</p>
+                        <button onclick="refreshCalendar()" class="btn btn-outline-secondary btn-sm">Refresh Calendar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('full-calendar');
+    
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 700,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek'
+        },
+        firstDay: 0, // Sunday
+        weekends: true,
+        navLinks: true,
+        selectable: true,
+        selectMirror: true,
+        events: '/api/calendar/events',
+        
+        // Event styling
+        eventClassNames: function(arg) {
+            return ['fc-event-booking'];
+        },
+        
+        eventDidMount: function(arg) {
+            // Style booked events
+            arg.el.style.backgroundColor = '#dc3545';
+            arg.el.style.borderColor = '#dc3545';
+            arg.el.style.color = '#ffffff';
+        },
+        
+        // Handle date clicks
+        dateClick: function(info) {
+            const clickedDate = info.dateStr;
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Only allow clicking on future dates
+            if (clickedDate < today) {
+                alert('Cannot book dates in the past.');
+                return;
+            }
+            
+            // Check if date is available (no events)
+            const eventsOnDate = calendar.getEvents().filter(event => {
+                const eventStart = event.start.toISOString().split('T')[0];
+                const eventEnd = event.end ? event.end.toISOString().split('T')[0] : eventStart;
+                return clickedDate >= eventStart && clickedDate <= eventEnd;
+            });
+            
+            if (eventsOnDate.length > 0) {
+                alert('This date is already booked.');
+            } else {
+                // Redirect to booking form with pre-selected date
+                window.location.href = `/?checkin=${clickedDate}`;
+            }
+        },
+        
+        // Handle date range selection
+        select: function(info) {
+            const startDate = info.startStr;
+            const endDate = info.endStr;
+            
+            // Redirect to booking form with selected date range
+            window.location.href = `/?checkin=${startDate}&checkout=${endDate}`;
+        },
+        
+        // Loading state
+        loading: function(isLoading) {
+            if (isLoading) {
+                document.body.style.cursor = 'wait';
+            } else {
+                document.body.style.cursor = 'default';
+            }
+        },
+        
+        // Error handling
+        eventSourceFailure: function(error) {
+            console.error('Failed to load calendar events:', error);
+            alert('Failed to load calendar data. Please refresh the page.');
+        }
+    });
+    
+    calendar.render();
+    
+    // Store calendar reference globally for refresh function
+    window.fullCalendar = calendar;
+});
+
+function refreshCalendar() {
+    if (window.fullCalendar) {
+        window.fullCalendar.refetchEvents();
+        
+        // Show temporary feedback
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Refreshing...';
+        btn.disabled = true;
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 2000);
+    }
+}
+</script>
+{% endblock %}

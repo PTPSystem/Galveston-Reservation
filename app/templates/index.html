@@ -1,36 +1,151 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section">
+<!-- Simple Header -->
+<section class="py-4" style="background-color: #f8f9fa;">
     <div class="container text-center">
-        <h1 class="display-4 mb-4">Welcome to Your Galveston Beachfront Rental</h1>
-        <p class="lead mb-4">Experience the perfect beach vacation with stunning ocean views, modern amenities, and unforgettable memories.</p>
-        <a href="{{ url_for('booking.booking_request') }}" class="btn btn-warning btn-lg">Check Availability & Book Now</a>
+        <h1 class="h2 mb-2">Bayfront Retreat - Galveston</h1>
+        <p class="mb-0 text-muted">Private family booking system</p>
     </div>
 </section>
 
-<!-- Quick Availability Check -->
-<section class="py-5">
+<!-- Main Booking Section -->
+<section class="py-4">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="calendar-container">
-                    <h3 class="text-center mb-4">Check Availability</h3>
-                    <div id="availability-calendar"></div>
-                    
-                    <div class="mt-4 text-center">
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <div class="available-date" style="width: 20px; height: 20px; margin-right: 10px;"></div>
-                                    <span>Available</span>
+        <div class="row">
+            <!-- Booking Form -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📅 Book Your Stay</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="booking-form">
+                            <!-- Step 1: Dates and Guests -->
+                            <div id="step-1">
+                                <div class="mb-3">
+                                    <label for="quick-checkin" class="form-label">Check-in Date</label>
+                                    <input type="date" class="form-control" id="quick-checkin" required>
+                                    <small class="text-muted">Check-in: 3:00 PM</small>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="quick-checkout" class="form-label">Check-out Date</label>
+                                    <input type="date" class="form-control" id="quick-checkout" required>
+                                    <small class="text-muted">Check-out: 11:00 AM</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="quick-guests" class="form-label">Number of Guests</label>
+                                    <select class="form-select" id="quick-guests" required>
+                                        <option value="">Select guests</option>
+                                        <option value="1">1 Guest</option>
+                                        <option value="2">2 Guests</option>
+                                        <option value="3">3 Guests</option>
+                                        <option value="4">4 Guests</option>
+                                        <option value="5">5 Guests</option>
+                                        <option value="6">6 Guests</option>
+                                        <option value="7">7 Guests</option>
+                                        <option value="8">8 Guests</option>
+                                        <option value="9">9 Guests</option>
+                                        <option value="10">10 Guests (Max)</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="checkAvailability()">
+                                    ✅ Check Availability
+                                </button>
                             </div>
-                            <div class="col-6">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <div class="unavailable-date" style="width: 20px; height: 20px; margin-right: 10px;"></div>
-                                    <span>Booked</span>
+                            
+                            <!-- Step 2: Guest Information (hidden initially) -->
+                            <div id="step-2" style="display: none;">
+                                <hr>
+                                <h6 class="text-success mb-3">✅ Dates Available! Please provide your details:</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="guest-name" class="form-label">Full Name *</label>
+                                    <input type="text" class="form-control" id="guest-name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="guest-email" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="guest-email" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="guest-phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="guest-phone">
+                                    <small class="text-muted">Optional - for check-in coordination</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="special-requests" class="form-label">Special Requests</label>
+                                    <textarea class="form-control" id="special-requests" rows="3" placeholder="Any special requests or questions?"></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success w-100 mb-2">
+                                    🏠 Submit Booking Request
+                                </button>
+                                
+                                <small class="text-muted d-block text-center">You'll receive confirmation within 24 hours</small>
+                            </div>
+                            
+                            <small class="text-muted d-block text-center mt-2">Click a date on the calendar to quick-select</small>
+                        </form>
+                        
+                        <div id="booking-result" class="mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Quick Property Info -->
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">🏠 Property Details</h6>
+                        <ul class="small mb-0">
+                            <li>4 bedrooms, 4 bathrooms</li>
+                            <li>Sleeps up to 10 guests</li>
+                            <li>Bayfront location with dock</li>
+                            <li>2 kayaks & 2 bikes included</li>
+                            <li>Free Wi-Fi & parking</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calendar -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">📆 Availability Calendar</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Booking Summary -->
+                        <div id="booking-summary" class="mb-3">
+                            <div class="alert alert-info" style="display: none;" id="current-bookings">
+                                <h6>📋 Current Bookings:</h6>
+                                <div id="bookings-list"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="calendar-loading" class="text-center py-3" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading calendar...</span>
+                            </div>
+                            <p class="mt-2 small text-muted">Loading availability...</p>
+                        </div>
+                        
+                        <div id="availability-calendar"></div>
+                        
+                        <div class="mt-3 text-center">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="available-date" style="width: 16px; height: 16px; margin-right: 8px; background-color: #28a745; border-radius: 3px;"></div>
+                                        <small>Available</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="unavailable-date" style="width: 16px; height: 16px; margin-right: 8px; background-color: #dc3545; border-radius: 3px;"></div>
+                                        <small>Booked</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -41,92 +156,16 @@
     </div>
 </section>
 
-<!-- Property Features -->
-<section class="property-features">
+<!-- Contact Information -->
+<section class="py-3" style="background-color: #f8f9fa;">
     <div class="container">
-        <div class="row text-center">
-            <div class="col-12 mb-5">
-                <h2>Why Choose Our Galveston Rental?</h2>
-                <p class="lead">Everything you need for the perfect beach vacation</p>
-            </div>
-        </div>
         <div class="row">
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">🏖️</div>
-                <h4>Beachfront Location</h4>
-                <p>Step directly onto the beautiful Galveston beach from your accommodation.</p>
+            <div class="col-md-6">
+                <h6>📞 Questions?</h6>
+                <p class="mb-0 small">Contact us for any questions about your stay or special requests.</p>
             </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">🏠</div>
-                <h4>Modern Amenities</h4>
-                <p>Fully equipped kitchen, high-speed WiFi, smart TV, and all the comforts of home.</p>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">🅿️</div>
-                <h4>Free Parking</h4>
-                <p>Dedicated parking space included with your stay - no need to worry about street parking.</p>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">🧼</div>
-                <h4>Professional Cleaning</h4>
-                <p>Thoroughly cleaned and sanitized between guests for your peace of mind.</p>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">📞</div>
-                <h4>24/7 Support</h4>
-                <p>Local host support available around the clock for any questions or issues.</p>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="feature-icon">⭐</div>
-                <h4>Excellent Reviews</h4>
-                <p>Highly rated by guests for cleanliness, location, and exceptional service.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Quick Booking Form -->
-<section class="py-5">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="booking-form">
-                    <h3 class="text-center mb-4">Quick Booking Request</h3>
-                    <form id="quick-booking-form">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="quick-checkin" class="form-label">Check-in Date</label>
-                                <input type="date" class="form-control" id="quick-checkin" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="quick-checkout" class="form-label">Check-out Date</label>
-                                <input type="date" class="form-control" id="quick-checkout" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="quick-guests" class="form-label">Number of Guests</label>
-                                <select class="form-select" id="quick-guests">
-                                    <option value="1">1 Guest</option>
-                                    <option value="2">2 Guests</option>
-                                    <option value="3">3 Guests</option>
-                                    <option value="4">4 Guests</option>
-                                    <option value="5">5 Guests</option>
-                                    <option value="6">6+ Guests</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3 d-flex align-items-end">
-                                <button type="button" class="btn btn-primary w-100" onclick="checkQuickAvailability()">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                    
-                    <div id="quick-availability-result" class="mt-3" style="display: none;"></div>
-                </div>
+            <div class="col-md-6 text-md-end">
+                <small class="text-muted">Last updated: Real-time sync with rental website</small>
             </div>
         </div>
     </div>
@@ -137,39 +176,169 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('availability-calendar');
+    const loadingDiv = document.getElementById('calendar-loading');
     
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        height: 'auto',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth'
-        },
-        events: '/api/calendar/events',
-        eventClassNames: function(arg) {
-            return ['fc-event-booking'];
-        },
-        eventDidMount: function(arg) {
-            // Style booked dates
-            arg.el.style.backgroundColor = '#dc3545';
-            arg.el.style.borderColor = '#dc3545';
-        },
-        dayCellDidMount: function(arg) {
-            // This will be enhanced to show availability status
-        },
-        dateClick: function(info) {
-            // Quick date selection for booking
-            document.getElementById('quick-checkin').value = info.dateStr;
+    if (!calendarEl) {
+        console.error('Calendar element not found');
+        return;
+    }
+    
+    // Load booking summary
+    loadBookingSummary();
+    
+    // Check if FullCalendar is loaded
+    if (typeof FullCalendar === 'undefined') {
+        console.error('FullCalendar library not loaded');
+        showFallbackCalendar();
+        return;
+    }
+    
+    // Show loading initially
+    if (loadingDiv) {
+        loadingDiv.style.display = 'block';
+    }
+    
+    try {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 400,
+            events: '/api/calendar/events',
+            eventColor: '#dc3545',
+            eventTextColor: '#ffffff',
+            eventDisplay: 'block',
+            displayEventTime: false,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth'
+            },
+            loading: function(isLoading) {
+                if (loadingDiv) {
+                    loadingDiv.style.display = isLoading ? 'block' : 'none';
+                }
+            },
+            dateClick: function(info) {
+                document.getElementById('quick-checkin').value = info.dateStr;
+            }
+        });
+        
+        calendar.render();
+        
+    } catch (error) {
+        console.error('Error creating calendar:', error);
+        showFallbackCalendar();
+    }
+    
+    function showFallbackCalendar() {
+        console.log('Showing fallback calendar display');
+        
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
         }
-    });
+        
+        // Fetch events manually and show simple list
+        fetch('/api/calendar/events')
+            .then(response => {
+                console.log('Fetch response status:', response.status);
+                return response.json();
+            })
+            .then(events => {
+                console.log('Fetched events manually:', events.length, 'events');
+                showEventsList(events);
+            })
+            .catch(error => {
+                console.error('Failed to fetch events:', error);
+                calendarEl.innerHTML = `
+                    <div class="alert alert-warning text-center">
+                        <h6>📅 Calendar Unavailable</h6>
+                        <p class="mb-0">Please use the booking form to check availability.</p>
+                    </div>
+                `;
+            });
+    }
     
-    calendar.render();
+    function showEventsList(events) {
+        let html = '<div class="fallback-calendar">';
+        html += '<h6 class="text-center mb-3">📅 Current Bookings</h6>';
+        
+        if (events.length === 0) {
+            html += '<div class="alert alert-success text-center">';
+            html += '<h6>✅ No Current Bookings</h6>';
+            html += '<p class="mb-0">The property appears to be available. Use the form to make a booking!</p>';
+            html += '</div>';
+        } else {
+            html += '<div class="alert alert-info">';
+            html += '<h6>📋 Upcoming Bookings:</h6>';
+            html += '<ul class="mb-0">';
+            
+            events.forEach(event => {
+                const start = new Date(event.start).toLocaleDateString();
+                const end = new Date(event.end).toLocaleDateString();
+                html += `<li><strong>${start} - ${end}:</strong> ${event.title}</li>`;
+            });
+            
+            html += '</ul>';
+            html += '</div>';
+        }
+        
+        html += '<p class="text-center mt-3">';
+        html += '<small class="text-muted">Use the booking form below to check specific dates</small>';
+        html += '</p>';
+        html += '</div>';
+        
+        calendarEl.innerHTML = html;
+    }
+    
+    function loadBookingSummary() {
+        fetch('/api/calendar/events')
+            .then(response => response.json())
+            .then(events => {
+                const currentBookingsDiv = document.getElementById('current-bookings');
+                const bookingsListDiv = document.getElementById('bookings-list');
+                
+                if (events.length > 0) {
+                    let bookingsHtml = '<ul class="mb-0">';
+                    
+                    events.forEach(event => {
+                        const start = new Date(event.start).toLocaleDateString();
+                        const end = new Date(event.end).toLocaleDateString();
+                        bookingsHtml += `<li><strong>${start} - ${end}:</strong> ${event.title}</li>`;
+                    });
+                    
+                    bookingsHtml += '</ul>';
+                    bookingsListDiv.innerHTML = bookingsHtml;
+                    currentBookingsDiv.style.display = 'block';
+                } else {
+                    bookingsListDiv.innerHTML = '<p class="mb-0 text-success">✅ No current bookings - Property available!</p>';
+                    currentBookingsDiv.className = 'alert alert-success';
+                    currentBookingsDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load booking summary:', error);
+            });
+    }
     
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('quick-checkin').setAttribute('min', today);
     document.getElementById('quick-checkout').setAttribute('min', today);
+    
+    // Pre-fill dates from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const checkinParam = urlParams.get('checkin');
+    const checkoutParam = urlParams.get('checkout');
+    const guestsParam = urlParams.get('guests');
+    
+    if (checkinParam) {
+        document.getElementById('quick-checkin').value = checkinParam;
+    }
+    if (checkoutParam) {
+        document.getElementById('quick-checkout').value = checkoutParam;
+    }
+    if (guestsParam) {
+        document.getElementById('quick-guests').value = guestsParam;
+    }
     
     // Update checkout min date when checkin changes
     document.getElementById('quick-checkin').addEventListener('change', function() {
@@ -177,6 +346,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const minCheckout = new Date(checkinDate);
         minCheckout.setDate(minCheckout.getDate() + 1);
         document.getElementById('quick-checkout').setAttribute('min', minCheckout.toISOString().split('T')[0]);
+        
+        // If checkout is before new minimum, clear it
+        const checkoutInput = document.getElementById('quick-checkout');
+        if (checkoutInput.value && checkoutInput.value <= this.value) {
+            checkoutInput.value = '';
+        }
     });
 });
 
@@ -239,5 +414,119 @@ async function checkQuickAvailability() {
         `;
     }
 }
+
+// New booking workflow functions
+function checkAvailability() {
+    const checkin = document.getElementById('quick-checkin').value;
+    const checkout = document.getElementById('quick-checkout').value;
+    const guests = document.getElementById('quick-guests').value;
+    
+    if (!checkin || !checkout || !guests) {
+        showBookingMessage('Please fill in all fields before checking availability.', 'warning');
+        return;
+    }
+    
+    if (new Date(checkin) >= new Date(checkout)) {
+        showBookingMessage('Check-out date must be after check-in date.', 'warning');
+        return;
+    }
+    
+    showBookingMessage('Checking availability...', 'info');
+    
+    // Check availability via API
+    fetch(`/api/calendar/check-availability?checkin=${checkin}&checkout=${checkout}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                showBookingMessage('✅ Dates are available! Please provide your details below.', 'success');
+                document.getElementById('step-2').style.display = 'block';
+                document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                let conflictMsg = 'Selected dates are not available.';
+                if (data.conflicts && data.conflicts.length > 0) {
+                    conflictMsg += '<br><strong>Conflicting bookings:</strong><ul>';
+                    data.conflicts.forEach(conflict => {
+                        conflictMsg += `<li>${conflict.start} to ${conflict.end}: ${conflict.title}</li>`;
+                    });
+                    conflictMsg += '</ul>';
+                }
+                showBookingMessage(conflictMsg, 'danger');
+                document.getElementById('step-2').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Availability check failed:', error);
+            showBookingMessage('Failed to check availability. Please try again.', 'danger');
+        });
+}
+
+// Handle booking form submission
+document.getElementById('booking-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        checkin: document.getElementById('quick-checkin').value,
+        checkout: document.getElementById('quick-checkout').value,
+        guests: parseInt(document.getElementById('quick-guests').value),
+        name: document.getElementById('guest-name').value,
+        email: document.getElementById('guest-email').value,
+        phone: document.getElementById('guest-phone').value,
+        special_requests: document.getElementById('special-requests').value
+    };
+    
+    // Basic validation
+    if (!formData.name || !formData.email) {
+        showBookingMessage('Please provide your name and email address.', 'warning');
+        return;
+    }
+    
+    showBookingMessage('Submitting your booking request...', 'info');
+    
+    // Submit booking request
+    fetch('/api/booking/request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showBookingMessage(
+                `🎉 <strong>Booking Request Submitted!</strong><br>
+                 ${data.message}<br>
+                 <small>Booking ID: #${data.booking_id}</small>`, 
+                'success'
+            );
+            
+            // Reset form
+            document.getElementById('booking-form').reset();
+            document.getElementById('step-2').style.display = 'none';
+            
+        } else {
+            showBookingMessage(
+                `❌ <strong>Booking Request Failed</strong><br>${data.message}`,
+                'danger'
+            );
+        }
+    })
+    .catch(error => {
+        console.error('Booking submission failed:', error);
+        showBookingMessage('Failed to submit booking request. Please try again.', 'danger');
+    });
+});
+
+function showBookingMessage(message, type) {
+    const resultDiv = document.getElementById('booking-result');
+    resultDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    resultDiv.style.display = 'block';
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Set minimum date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('quick-checkin').min = today;
+document.getElementById('quick-checkout').min = today;
 </script>
 {% endblock %}

@@ -3,6 +3,7 @@ Main routes for the Galveston Reservation System
 """
 from flask import Blueprint, render_template, request, jsonify
 from app.services.google_calendar import GoogleCalendarService
+from app.services.calendar_sync import CalendarSyncService
 from app.models import CalendarEvent
 from datetime import datetime, timedelta
 import os
@@ -67,6 +68,41 @@ def check_availability():
             'message': str(e),
             'format': 'YYYY-MM-DD'
         }), 400
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@main_bp.route('/api/calendar-sync')
+def calendar_sync_status():
+    """API endpoint to check calendar sync status"""
+    try:
+        sync_service = CalendarSyncService()
+        comparison = sync_service.get_availability_comparison()
+        
+        return jsonify(comparison)
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@main_bp.route('/api/next-available')
+def next_available_dates():
+    """API endpoint to get next available dates from rental website"""
+    try:
+        count = request.args.get('count', 10, type=int)
+        sync_service = CalendarSyncService()
+        available_dates = sync_service.get_next_available_dates(count)
+        
+        return jsonify({
+            'available_dates': available_dates,
+            'count': len(available_dates),
+            'source': 'galvestonislandresortrentals.com'
+        })
+        
     except Exception as e:
         return jsonify({
             'error': 'Internal server error',

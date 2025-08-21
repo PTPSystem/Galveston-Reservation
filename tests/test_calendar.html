@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Calendar Test</title>
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+</head>
+<body>
+    <h1>FullCalendar Test</h1>
+    <div id="test-calendar" style="width: 800px; height: 600px; margin: 20px;"></div>
+    
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    
+    <script>
+        console.log('Testing FullCalendar...');
+        console.log('FullCalendar object:', typeof FullCalendar);
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('test-calendar');
+            
+            console.log('Creating test calendar...');
+            
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: [
+                    {
+                        title: 'Test Event',
+                        start: '2024-01-15',
+                        end: '2024-01-17',
+                        backgroundColor: '#dc3545'
+                    }
+                ]
+            });
+            
+            calendar.render();
+            console.log('Test calendar rendered');
+        });
+    </script>
+</body>
+</html>

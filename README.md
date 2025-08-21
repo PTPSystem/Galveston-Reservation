@@ -1,53 +1,155 @@
-# Galveston Reservation
+# Galveston Reservation System
 
-Unified tooling to manage a short‑term rental property in Galveston by: (1) displaying Google Calendar availability, (2) orchestrating the end‑to‑end operational workflow (booking → prep → guest stay → turnover), and (3) automatically cross‑checking an external/online calendar source to ensure no bookings are missed on Google Calendar.
+A complete Flask-based booking management system for short-term rental properties in Galveston. Features real-time availability checking, automated email workflows, Google Calendar integration, and a multi-step approval process.
 
-> Status: Initial README scaffold (no committed implementation code yet). This document defines the intended architecture & workflows so code can be added consistently.
+## 🚀 Status: Production Ready
 
-## ✨ Core Functions
+The system is fully implemented and running at `https://str.ptpsystem.com` with complete booking workflow, email notifications, and calendar synchronization.
 
-1. Show calendar from Google Account
-   - Read reservations / events from a designated Google Calendar (e.g. `Primary` or a dedicated rental calendar) and present them in a human‑friendly view (CLI, web, or dashboard).
-2. Short‑term rental workflow automation
-   - Standardize tasks triggered by each booking lifecycle stage (booking confirmation, pre‑arrival messaging, check‑in, mid‑stay, checkout, cleaning/turnover, maintenance follow‑ups).
-3. External calendar consistency check
-   - Poll or fetch an online calendar (e.g. listing platform iCal feed / partner portal / scraped availability page) and reconcile it against Google Calendar to detect missing or divergent events.
+## ✨ Core Features
 
-## 🧭 Intended Architecture (Proposed)
+1. **Real-time Calendar Display**
+   - Integration with Google Calendar API for live availability checking
+   - Visual calendar interface showing booked and available dates
+   - Automatic conflict detection for booking requests
 
-| Layer | Responsibility |
-|-------|----------------|
-| Data Sources | Google Calendar API, External iCal / HTML feed, Local cache (SQLite / JSON) |
-| Ingestion | Scheduled fetchers (cron / GitHub Actions / local script) |
-| Core Logic | Booking normalization, diff engine, workflow state machine |
-| Notifications | Email (SMTP), SMS (Twilio), or Chat (Slack / Teams) adapters |
-| Presentation | CLI reports, optional lightweight web dashboard |
+2. **Multi-step Booking Workflow**
+   - Guest submits booking request through web form
+   - Admin receives email with approve/reject links
+   - Automatic calendar event creation upon approval
+   - Email notifications to all stakeholders
 
-> Adjust once actual language / frameworks are chosen.
+3. **Email Automation**
+   - Booking approval/rejection notifications
+   - Guest confirmation emails
+   - Team notifications for new bookings
+   - Secure token-based approval links
 
-## 🔐 Prerequisites
+## 📁 Project Structure
 
-Because implementation details are not yet committed, below are assumed prerequisites:
+```
+Galveston-Reservation/
+├── app/                    # Main Flask application
+│   ├── models/            # Database models
+│   ├── routes/            # API endpoints and routes
+│   ├── services/          # Business logic (email, calendar)
+│   ├── static/            # CSS, JS, images
+│   └── templates/         # HTML templates
+├── docs/                  # Documentation files
+│   ├── DEPLOYMENT.md      # Deployment instructions
+│   ├── GOOGLE_CALENDAR_SETUP.md
+│   └── CLOUDFLARE_SETUP.md
+├── scripts/               # Utility scripts
+│   ├── init_db.py         # Database initialization
+│   ├── smart_calendar_sync.py
+│   └── deployment scripts
+├── tests/                 # Test files and test data
+└── secrets/               # Credentials (git-ignored)
+```
 
-- A Google Cloud project with Calendar API enabled.
-- OAuth 2.0 credentials (Service Account or OAuth Client) granting read/write access to the rental calendar.
-- Access to the external calendar feed (public iCal URL, API key, or page URL for scraping).
-- Runtime environment (pick one when coding begins):
-   - Python 3.11+ (suggested) OR
-   - Node.js 20+ OR
-   - Another stack (document here once decided).
+## 🛠 Technology Stack
 
-## 🗂 Data Model (Conceptual)
+- **Backend**: Flask 3.0.0 with SQLAlchemy
+- **Database**: SQLite (with PostgreSQL support)
+- **Email**: Flask-Mail with Gmail SMTP
+- **Calendar**: Google Calendar API v3
+- **Frontend**: Bootstrap 5, vanilla JavaScript
+- **Deployment**: Waitress WSGI server
+- **Security**: Token-based authentication, SSL via Cloudflare
 
-Minimal normalized booking/event structure:
+## 🚀 Quick Start
 
-```json
-{
-  "id": "ext-1234" ,           // Stable unique identifier
-  "source": "google|external",
-  "start": "2025-08-14T15:00:00Z",
-  "end": "2025-08-18T17:00:00Z",
-  "guestName": "Jane Doe",
+1. **Clone and Setup**
+   ```bash
+   git clone <repository-url>
+   cd Galveston-Reservation
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   pip install -r requirements.txt
+   ```
+
+2. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+
+3. **Initialize Database**
+   ```bash
+   python scripts/init_db.py
+   ```
+
+4. **Run Development Server**
+   ```bash
+   python run.py
+   ```
+
+5. **Production Deployment**
+   ```bash
+   python server.py  # Runs on port 80
+   ```
+
+## 🔐 Configuration Requirements
+
+1. **Google Calendar API**
+   - Service account credentials in `secrets/credentials.json`
+   - Calendar shared with service account email
+   - See `docs/GOOGLE_CALENDAR_SETUP.md` for details
+
+2. **Email Configuration**
+   - Gmail SMTP with app password
+   - Configure in `.env` file
+
+3. **Environment Variables**
+   ```env
+   FLASK_ENV=production
+   SECRET_KEY=your-secret-key
+   GMAIL_USERNAME=your-email@gmail.com
+   GMAIL_PASSWORD=your-app-password
+   GOOGLE_CALENDAR_ID=your-calendar-id
+   ```
+
+## � Booking Workflow
+
+1. **Guest Request**
+   - Guest fills out booking form at `str.ptpsystem.com`
+   - System checks calendar availability
+   - Creates BookingRequest in database
+
+2. **Admin Approval**
+   - Admin receives email with booking details
+   - Click approve/reject links in email
+   - Links expire after 48 hours
+
+3. **Confirmation**
+   - Upon approval: Creates Google Calendar event
+   - Sends confirmation to guest
+   - Notifies team members (without guest names for privacy)
+
+4. **Email Recipients**
+   - Primary admin: `livingbayfront@gmail.com`
+   - Team notifications: `info@galvestonislandresortrentals.com`, 
+     `michelle.kleensweep@gmail.com`, `alicia.kleensweep@gmail.com`
+
+## 📖 Documentation
+
+Detailed setup and deployment guides are available in the `docs/` directory:
+
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Google Calendar Setup](docs/GOOGLE_CALENDAR_SETUP.md)
+- [Cloudflare Configuration](docs/CLOUDFLARE_SETUP.md)
+
+## 🧪 Testing
+
+Test files are organized in the `tests/` directory:
+
+```bash
+# Run tests
+python -m pytest tests/
+
+# Run specific test
+python tests/test_calendar.py
+```
   "status": "confirmed|tentative|canceled",
   "notes": "Any freeform text",
   "raw": { /* Original provider payload */ }

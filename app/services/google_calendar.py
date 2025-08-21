@@ -2,11 +2,9 @@
 Google Calendar Integration Service
 """
 import os
-import pickle
+import json
 from datetime import datetime, timedelta
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import pytz
@@ -19,41 +17,28 @@ class GoogleCalendarService:
     
     def __init__(self):
         self.service = None
-        self.calendar_id = os.getenv('GOOGLE_CALENDAR_ID', 'bayfrontliving@gmail.com')
-        self.credentials_path = os.getenv('GOOGLE_CLIENT_SECRETS_PATH', './secrets/client_secrets.json')
-        self.token_path = './secrets/token.pickle'
+        self.calendar_id = os.getenv('GOOGLE_CALENDAR_ID', 'livingbayfront@gmail.com')
+        self.credentials_path = os.getenv('GOOGLE_CREDENTIALS_PATH', './secrets/service-account.json')
         self._authenticate()
     
     def _authenticate(self):
-        """Authenticate with Google Calendar API"""
-        creds = None
-        
-        # Load existing token
-        if os.path.exists(self.token_path):
-            with open(self.token_path, 'rb') as token:
-                creds = pickle.load(token)
-        
-        # If there are no (valid) credentials available, request authorization
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if not os.path.exists(self.credentials_path):
-                    raise FileNotFoundError(
-                        f"Google credentials file not found at {self.credentials_path}. "
-                        "Please download client_secrets.json from Google Cloud Console."
-                    )
-                
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_path, self.SCOPES)
-                creds = flow.run_local_server(port=0)
+        """Authenticate with Google Calendar API using service account"""
+        try:
+            if not os.path.exists(self.credentials_path):
+                raise FileNotFoundError(
+                    f"Google service account file not found at {self.credentials_path}. "
+                    "Please ensure the service-account.json file is in the secrets folder."
+                )
             
-            # Save the credentials for the next run
-            os.makedirs(os.path.dirname(self.token_path), exist_ok=True)
-            with open(self.token_path, 'wb') as token:
-                pickle.dump(creds, token)
-        
-        self.service = build('calendar', 'v3', credentials=creds)
+            # Load service account credentials
+            credentials = service_account.Credentials.from_service_account_file(
+                self.credentials_path, scopes=self.SCOPES)
+            
+            # Build the service
+            self.service = build('calendar', 'v3', credentials=credentials)
+            
+        except Exception as e:
+            raise Exception(f"Failed to authenticate with Google Calendar: {e}")
     
     def get_events(self, start_date=None, end_date=None, max_results=100):
         """
@@ -74,9 +59,20 @@ class GoogleCalendarService:
             if not end_date:
                 end_date = start_date + timedelta(days=180)
             
-            # Convert to RFC3339 format
-            time_min = start_date.isoformat() + 'Z'
-            time_max = end_date.isoformat() + 'Z'
+            # Ensure we're working with UTC and proper RFC3339 format
+            if start_date.tzinfo is None:
+                start_date = start_date.replace(tzinfo=pytz.UTC)
+            if end_date.tzinfo is None:
+                end_date = end_date.replace(tzinfo=pytz.UTC)
+            
+            # Convert to UTC and format properly
+            start_date_utc = start_date.astimezone(pytz.UTC)
+            end_date_utc = end_date.astimezone(pytz.UTC)
+            
+            time_min = start_date_utc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + 'Z'
+            time_max = end_date_utc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + 'Z'
+            
+            print(f"Requesting calendar events from {time_min} to {time_max}")
             
             events_result = self.service.events().list(
                 calendarId=self.calendar_id,
@@ -88,6 +84,7 @@ class GoogleCalendarService:
             ).execute()
             
             events = events_result.get('items', [])
+            print(f"Found {len(events)} events")
             return events
             
         except HttpError as error:
@@ -142,6 +139,28 @@ class GoogleCalendarService:
             created_event = self.service.events().insert(
                 calendarId=self.calendar_id,
                 body=event
+            ).execute()
+            
+            return created_event
+            
+        except HttpError as error:
+            print(f'An error occurred creating event: {error}')
+            return None
+    
+    def create_event_from_dict(self, event_dict):
+        """
+        Create an event from a dictionary (for simple event creation)
+        
+        Args:
+            event_dict: Dictionary containing event details
+        
+        Returns:
+            Created event object or None if failed
+        """
+        try:
+            created_event = self.service.events().insert(
+                calendarId=self.calendar_id,
+                body=event_dict
             ).execute()
             
             return created_event
@@ -256,3 +275,24 @@ class GoogleCalendarService:
                 'conflicts': [],
                 'message': 'Error checking availability'
             }
+    
+    def sync_events(self, days_ahead=30):
+        """
+        Sync events from Google Calendar
+        
+        Args:
+            days_ahead: Number of days ahead to sync
+            
+        Returns:
+            List of synced events
+        """
+        try:
+            start_date = datetime.utcnow()
+            end_date = start_date + timedelta(days=days_ahead)
+            
+            events = self.get_events(start_date, end_date)
+            return events if events else []
+            
+        except Exception as error:
+            print(f'Error syncing events: {error}')
+            return []
