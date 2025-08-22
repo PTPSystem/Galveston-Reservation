@@ -1,0 +1,38 @@
+name: galveston-stack
+
+services:
+  app:
+    build: .
+    image: galveston-reservation:latest
+    env_file: [.env.container]
+    environment:
+      # Override DB for Postgres service below
+      DATABASE_URL: postgresql+psycopg2://app:app_pass@db:5432/galveston
+      GOOGLE_CREDENTIALS_PATH: /run/secrets/service-account.json
+    volumes:
+      - ./secrets/service-account.json:/run/secrets/service-account.json:ro
+      - app-logs:/app/logs
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"   # adjust / remove if using reverse proxy container
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: galveston
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d galveston"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  app-logs:
