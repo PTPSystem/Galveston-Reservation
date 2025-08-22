@@ -1,0 +1,8 @@
+Host galveston-prod
+    HostName 83.229.35.162
+    User howardshen
+    IdentityFile ~/.ssh/id_ed25519   # adjust if different key filename
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 4
+    Compression yes
