@@ -33,24 +33,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  metabase:
-    image: metabase/metabase:latest
-    environment:
-      MB_DB_TYPE: postgres
-      MB_DB_DBNAME: metabase
-      MB_DB_PORT: 5432
-      MB_DB_USER: app
-      MB_DB_PASS: app_pass
-      MB_DB_HOST: db
-    depends_on:
-      - db
-    ports:
-      - "3000:3000"
-    volumes:
-      - metabase-data:/metabase-data
-    restart: unless-stopped
-
 volumes:
   pgdata:
-  metabase-data:
   app-logs:
