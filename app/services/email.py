@@ -22,8 +22,15 @@ class EmailService:
     def _get_serializer(self):
         """Get URL serializer for secure tokens"""
         from app.config import config
-        secret_key = config.APPROVAL_TOKEN_SECRET or current_app.config['SECRET_KEY']
-        return URLSafeTimedSerializer(secret_key)
+        
+        if not config.APPROVAL_TOKEN_SECRET:
+            raise ValueError("APPROVAL_TOKEN_SECRET must be configured for email service")
+        
+        # Validate minimum entropy (at least 32 characters)
+        if len(config.APPROVAL_TOKEN_SECRET) < 32:
+            raise ValueError("APPROVAL_TOKEN_SECRET must be at least 32 characters long")
+        
+        return URLSafeTimedSerializer(config.APPROVAL_TOKEN_SECRET)
     
     def generate_approval_token(self, booking_id):
         """Generate a secure token for booking approval/rejection"""
