@@ -30,6 +30,18 @@ Always prefer established, well-maintained packages:
 - `marshmallow` - Data serialization/validation
 - `bcrypt` - Password hashing
 - `python-dotenv` - Environment variable management
+- **`app.services.input_sanitizer`** - **ALWAYS USE** for all user input sanitization
+
+**Input Sanitization (CRITICAL):**
+```python
+from app.services.input_sanitizer import input_sanitizer
+
+# ALWAYS sanitize user input before database storage
+sanitized_data = input_sanitizer.sanitize_booking_data(form_data)
+
+# ALWAYS sanitize text output in templates/emails
+safe_text = input_sanitizer.sanitize_text(user_input)
+```
 
 **API & External Services:**
 - `google-api-python-client` - Google Calendar integration
@@ -124,7 +136,86 @@ class EmailConfig:
 
 ### 4. Security Best Practices
 
-#### Input Validation
+#### Input Validation & Sanitization (MANDATORY)
+```python
+from app.services.input_sanitizer import input_sanitizer
+
+# NEVER store raw user input - ALWAYS sanitize first
+@booking_bp.route('/request', methods=['POST'])
+def booking_request():
+    try:
+        # ✅ CORRECT: Sanitize ALL user inputs
+        sanitized_data = input_sanitizer.sanitize_booking_data({
+            'guest_name': request.form.get('guest_name'),
+            'guest_email': request.form.get('guest_email'),
+            'special_requests': request.form.get('special_requests')
+        })
+        
+        # Safe to store sanitized data
+        booking = BookingRequest(**sanitized_data)
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+# ❌ NEVER DO THIS - Raw user input is dangerous
+booking = BookingRequest(
+    guest_name=request.form.get('guest_name'),  # DANGEROUS!
+    special_requests=request.form.get('special_requests')  # DANGEROUS!
+)
+```
+
+#### Email Output Sanitization (MANDATORY)
+```python
+from app.services.email import EmailService
+
+class EmailService:
+    def send_notification(self, booking_request):
+        # ✅ CORRECT: Always sanitize before email output
+        sanitized_data = self._sanitize_booking_data(booking_request)
+        
+        html_body = f"""
+        <p><strong>Name:</strong> {sanitized_data['guest_name']}</p>
+        <p><strong>Requests:</strong> {sanitized_data['special_requests']}</p>
+        """
+        
+        # ❌ NEVER DO THIS - Direct interpolation is XSS vulnerable
+        html_body = f"""
+        <p><strong>Name:</strong> {booking_request.guest_name}</p>  # XSS RISK!
+        """
+```
+
+#### Form Processing Pattern (REQUIRED)
+```python
+# ALWAYS follow this pattern for any form that accepts user input:
+
+@app.route('/form-endpoint', methods=['POST'])
+def process_form():
+    try:
+        # 1. Extract raw form data
+        raw_data = {
+            'field1': request.form.get('field1'),
+            'field2': request.form.get('field2')
+        }
+        
+        # 2. MANDATORY: Sanitize with input_sanitizer
+        sanitized_data = input_sanitizer.sanitize_booking_data(raw_data)
+        # OR for custom sanitization:
+        sanitized_text = input_sanitizer.sanitize_text(raw_data['field1'])
+        
+        # 3. Additional validation if needed
+        if not sanitized_data['field1']:
+            raise ValueError("Field1 is required")
+        
+        # 4. Safe to process/store sanitized data
+        model = Model(**sanitized_data)
+        db.session.add(model)
+        db.session.commit()
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+```
+
+#### Marshmallow Schema Integration
 ```python
 from marshmallow import Schema, fields, validate
 
@@ -286,6 +377,9 @@ When suggesting code changes, ensure:
 - [ ] Type hints are present and accurate
 - [ ] Docstrings follow Google style guide
 - [ ] Error handling is explicit and appropriate
+- [ ] **INPUT SANITIZATION: All user input uses `input_sanitizer`**
+- [ ] **EMAIL SECURITY: All email templates use sanitized data**
+- [ ] **FORM PROCESSING: Follows the required sanitization pattern**
 - [ ] Security considerations are addressed
 - [ ] Code is testable (dependency injection used)
 - [ ] Industry standard packages are preferred
@@ -305,8 +399,15 @@ When suggesting code changes, ensure:
 ## Security Reminders
 
 - Never commit secrets to version control
-- Validate all user input
+- **ALWAYS use `input_sanitizer` for all user input processing**
+- **NEVER store raw form data directly to database**
+- **ALWAYS sanitize data before email template interpolation**
+- Validate all user input with comprehensive checks
 - Use parameterized queries
+- Implement rate limiting
+- Use HTTPS in production
+- Keep dependencies updated
+- Follow principle of least privilege
 - Implement rate limiting
 - Use HTTPS in production
 - Keep dependencies updated
