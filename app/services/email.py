@@ -1,7 +1,9 @@
 """
 Email Service for Galveston Reservation System
 """
+import html
 import os
+import re
 from flask import current_app, render_template_string
 from flask_mail import Message
 from app import mail
@@ -18,6 +20,93 @@ class EmailService:
         self.admin_email = config.BOOKING_APPROVAL_EMAIL
         self.notification_emails = config.BOOKING_NOTIFICATION_EMAILS
         self.base_url = config.BASE_URL
+        
+    def _sanitize_input(self, value):
+        """Sanitize user input for safe HTML rendering.
+        
+        Args:
+            value: The input value to sanitize
+            
+        Returns:
+            str: HTML-escaped string safe for interpolation
+        """
+        if not value:
+            return ''
+        return html.escape(str(value))
+    
+    def _validate_booking_request(self, booking_request):
+        """Validate booking request data before processing.
+        
+        Args:
+            booking_request: The booking request object to validate
+            
+        Returns:
+            bool: True if validation passes
+            
+        Raises:
+            ValueError: If validation fails with descriptive error message
+        """
+        errors = []
+        
+        # Required fields validation
+        required_fields = {
+            'guest_name': 'Guest name',
+            'guest_email': 'Guest email',
+            'start_date': 'Check-in date',
+            'end_date': 'Check-out date',
+            'num_guests': 'Number of guests'
+        }
+        
+        for field, label in required_fields.items():
+            if not hasattr(booking_request, field) or not getattr(booking_request, field):
+                errors.append(f"{label} is required")
+        
+        # Email format validation
+        if hasattr(booking_request, 'guest_email') and booking_request.guest_email:
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, booking_request.guest_email):
+                errors.append("Invalid email format")
+        
+        # Length validations
+        if hasattr(booking_request, 'guest_name') and len(str(booking_request.guest_name)) > 100:
+            errors.append("Guest name must be 100 characters or less")
+        
+        if hasattr(booking_request, 'special_requests') and booking_request.special_requests:
+            if len(str(booking_request.special_requests)) > 1000:
+                errors.append("Special requests must be 1000 characters or less")
+        
+        # Date validation
+        if hasattr(booking_request, 'start_date') and hasattr(booking_request, 'end_date'):
+            if booking_request.start_date >= booking_request.end_date:
+                errors.append("Check-out date must be after check-in date")
+        
+        # Guest count validation
+        if hasattr(booking_request, 'num_guests'):
+            if not isinstance(booking_request.num_guests, int) or booking_request.num_guests < 1:
+                errors.append("Number of guests must be a positive integer")
+            if booking_request.num_guests > 20:  # Reasonable upper limit
+                errors.append("Number of guests exceeds maximum capacity")
+        
+        if errors:
+            raise ValueError(f"Validation errors: {'; '.join(errors)}")
+        
+        return True
+    
+    def _sanitize_booking_data(self, booking_request):
+        """Sanitize all booking request data for safe HTML rendering.
+        
+        Args:
+            booking_request: The booking request object
+            
+        Returns:
+            dict: Dictionary with sanitized booking data
+        """
+        return {
+            'guest_name': self._sanitize_input(booking_request.guest_name),
+            'guest_email': self._sanitize_input(booking_request.guest_email),
+            'guest_phone': self._sanitize_input(booking_request.guest_phone),
+            'special_requests': self._sanitize_input(booking_request.special_requests)
+        }
         
     def _get_serializer(self):
         """Get URL serializer for secure tokens"""
@@ -53,21 +142,27 @@ class EmailService:
     def send_booking_request_notification(self, booking_request):
         """Send notification to admin about new booking request"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
             approval_token = self.generate_approval_token(booking_request.id)
             rejection_token = self.generate_rejection_token(booking_request.id)
             
             approve_url = f"{self.base_url}/admin/approve/{approval_token}"
             reject_url = f"{self.base_url}/admin/reject/{rejection_token}"
             
-            subject = f"New Booking Request - {booking_request.guest_name}"
+            subject = f"New Booking Request - {sanitized_data['guest_name']}"
             
             html_body = f"""
             <h2>New Booking Request</h2>
             
             <h3>Guest Information</h3>
-            <p><strong>Name:</strong> {booking_request.guest_name}</p>
-            <p><strong>Email:</strong> {booking_request.guest_email}</p>
-            <p><strong>Phone:</strong> {booking_request.guest_phone or 'Not provided'}</p>
+            <p><strong>Name:</strong> {sanitized_data['guest_name']}</p>
+            <p><strong>Email:</strong> {sanitized_data['guest_email']}</p>
+            <p><strong>Phone:</strong> {sanitized_data['guest_phone'] or 'Not provided'}</p>
             
             <h3>Booking Details</h3>
             <p><strong>Check-in:</strong> {booking_request.start_date.strftime('%B %d, %Y at %I:%M %p')}</p>
@@ -75,7 +170,7 @@ class EmailService:
             <p><strong>Duration:</strong> {booking_request.duration_days} days</p>
             <p><strong>Number of Guests:</strong> {booking_request.num_guests}</p>
             
-            {f'<p><strong>Special Requests:</strong> {booking_request.special_requests}</p>' if booking_request.special_requests else ''}
+            {f'<p><strong>Special Requests:</strong> {sanitized_data["special_requests"]}</p>' if booking_request.special_requests else ''}
             
             <h3>Actions</h3>
             <p>
@@ -102,6 +197,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in booking notification: {e}")
+            return False
         except Exception as e:
             print(f"Error sending booking notification: {e}")
             return False
@@ -109,12 +207,18 @@ class EmailService:
     def send_approval_confirmation(self, booking_request):
         """Send confirmation email to guest when booking is approved"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
             subject = f"Booking Approved - Galveston Rental"
             
             html_body = f"""
             <h2>🎉 Your Booking Has Been Approved!</h2>
             
-            <p>Hello {booking_request.guest_name},</p>
+            <p>Hello {sanitized_data['guest_name']},</p>
             
             <p>Great news! Your booking request has been approved.</p>
             
@@ -144,6 +248,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in approval confirmation: {e}")
+            return False
         except Exception as e:
             print(f"Error sending approval confirmation: {e}")
             return False
@@ -151,14 +258,21 @@ class EmailService:
     def send_rejection_notification(self, booking_request, reason=None):
         """Send rejection email to guest when booking is rejected"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            sanitized_reason = self._sanitize_input(reason) if reason else None
+            
             subject = f"Booking Request Update - Galveston Rental"
             
-            reason_text = f"<p><strong>Reason:</strong> {reason}</p>" if reason else ""
+            reason_text = f"<p><strong>Reason:</strong> {sanitized_reason}</p>" if sanitized_reason else ""
             
             html_body = f"""
             <h2>Booking Request Update</h2>
             
-            <p>Hello {booking_request.guest_name},</p>
+            <p>Hello {sanitized_data['guest_name']},</p>
             
             <p>Thank you for your interest in our Galveston rental property. Unfortunately, we are unable to accommodate your booking request for the following dates:</p>
             
@@ -186,6 +300,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in rejection notification: {e}")
+            return False
         except Exception as e:
             print(f"Error sending rejection notification: {e}")
             return False
@@ -193,7 +310,13 @@ class EmailService:
     def send_booking_confirmed_notification(self, booking_request):
         """Send notification to team members when booking is confirmed in Google Calendar"""
         try:
-            subject = f"Booking Confirmed in Calendar - {booking_request.guest_name}"
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
+            subject = f"Booking Confirmed in Calendar - {sanitized_data['guest_name']}"
             
             html_body = f"""
             <h2>📅 Booking Added to Google Calendar</h2>
@@ -201,9 +324,9 @@ class EmailService:
             <p>A new booking has been confirmed and added to the BayfrontLiving@gmail.com calendar:</p>
             
             <h3>Guest Information</h3>
-            <p><strong>Name:</strong> {booking_request.guest_name}</p>
-            <p><strong>Email:</strong> {booking_request.guest_email}</p>
-            <p><strong>Phone:</strong> {booking_request.guest_phone or 'Not provided'}</p>
+            <p><strong>Name:</strong> {sanitized_data['guest_name']}</p>
+            <p><strong>Email:</strong> {sanitized_data['guest_email']}</p>
+            <p><strong>Phone:</strong> {sanitized_data['guest_phone'] or 'Not provided'}</p>
             
             <h3>Booking Details</h3>
             <p><strong>Check-in:</strong> {booking_request.start_date.strftime('%B %d, %Y at %I:%M %p')}</p>
@@ -211,7 +334,7 @@ class EmailService:
             <p><strong>Duration:</strong> {booking_request.duration_days} days</p>
             <p><strong>Number of Guests:</strong> {booking_request.num_guests}</p>
             
-            {f'<p><strong>Special Requests:</strong> {booking_request.special_requests}</p>' if booking_request.special_requests else ''}
+            {f'<p><strong>Special Requests:</strong> {sanitized_data["special_requests"]}</p>' if booking_request.special_requests else ''}
             
             <h3>Workflow Actions Needed</h3>
             <ul>
@@ -235,6 +358,9 @@ class EmailService:
             
             return True
             
+        except ValueError as e:
+            print(f"Validation error in booking confirmation notification: {e}")
+            return False
         except Exception as e:
             print(f"Error sending booking confirmation notification: {e}")
             return False
@@ -288,6 +414,12 @@ class EmailService:
     def send_booking_approval_request(self, booking_request):
         """Send approval request email to admin for new booking"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
             approval_token = self.generate_approval_token(booking_request.id)
             rejection_token = self.generate_rejection_token(booking_request.id)
             
@@ -307,14 +439,14 @@ class EmailService:
                 <p><strong>Check-out:</strong> {booking_request.end_date.strftime('%A, %B %d, %Y')} at 11:00 AM</p>
                 <p><strong>Duration:</strong> {duration} nights</p>
                 <p><strong>Guests:</strong> {booking_request.num_guests} people</p>
-                {f'<p><strong>Special Requests:</strong> {booking_request.special_requests}</p>' if booking_request.special_requests else ''}
+                {f'<p><strong>Special Requests:</strong> {sanitized_data["special_requests"]}</p>' if booking_request.special_requests else ''}
             </div>
             
             <div style="background-color: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h3>👤 Guest Contact (Private)</h3>
-                <p><strong>Name:</strong> {booking_request.guest_name}</p>
-                <p><strong>Email:</strong> {booking_request.guest_email}</p>
-                <p><strong>Phone:</strong> {booking_request.guest_phone or 'Not provided'}</p>
+                <p><strong>Name:</strong> {sanitized_data['guest_name']}</p>
+                <p><strong>Email:</strong> {sanitized_data['guest_email']}</p>
+                <p><strong>Phone:</strong> {sanitized_data['guest_phone'] or 'Not provided'}</p>
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
@@ -345,6 +477,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in approval request: {e}")
+            return False
         except Exception as e:
             print(f"Error sending approval request: {e}")
             return False
@@ -388,6 +523,12 @@ class EmailService:
     def send_guest_confirmation(self, booking_request):
         """Send confirmation email to guest"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
             duration = (booking_request.end_date - booking_request.start_date).days
             
             subject = f"Booking Confirmed! Galveston Bayfront Retreat - {booking_request.start_date.strftime('%m/%d')}"
@@ -395,7 +536,7 @@ class EmailService:
             html_body = f"""
             <h2>🎉 Your Booking is Confirmed!</h2>
             
-            <p>Dear {booking_request.guest_name},</p>
+            <p>Dear {sanitized_data['guest_name']},</p>
             
             <p>Great news! Your booking at the Galveston Bayfront Retreat has been approved and confirmed.</p>
             
@@ -434,6 +575,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in guest confirmation: {e}")
+            return False
         except Exception as e:
             print(f"Error sending guest confirmation: {e}")
             return False
@@ -441,12 +585,18 @@ class EmailService:
     def send_guest_rejection(self, booking_request):
         """Send rejection email to guest"""
         try:
+            # Validate input before processing
+            self._validate_booking_request(booking_request)
+            
+            # Sanitize user input for safe HTML rendering
+            sanitized_data = self._sanitize_booking_data(booking_request)
+            
             subject = f"Booking Update - Galveston Bayfront Retreat"
             
             html_body = f"""
             <h2>Booking Update</h2>
             
-            <p>Dear {booking_request.guest_name},</p>
+            <p>Dear {sanitized_data['guest_name']},</p>
             
             <p>Thank you for your interest in the Galveston Bayfront Retreat.</p>
             
@@ -484,6 +634,9 @@ class EmailService:
             mail.send(msg)
             return True
             
+        except ValueError as e:
+            print(f"Validation error in guest rejection: {e}")
+            return False
         except Exception as e:
             print(f"Error sending guest rejection: {e}")
             return False

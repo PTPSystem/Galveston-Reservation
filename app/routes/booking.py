@@ -6,6 +6,7 @@ from app import db
 from app.models import BookingRequest
 from app.services.email import EmailService
 from app.services.google_calendar import GoogleCalendarService
+from app.services.input_sanitizer import input_sanitizer
 from datetime import datetime
 import secrets
 
@@ -18,31 +19,36 @@ def booking_request():
         return render_template('booking_request.html')
     
     try:
-        # Extract form data
-        guest_name = request.form.get('guest_name', '').strip()
-        guest_email = request.form.get('guest_email', '').strip()
-        guest_phone = request.form.get('guest_phone', '').strip()
-        start_date_str = request.form.get('start_date')
-        end_date_str = request.form.get('end_date')
-        num_guests = request.form.get('num_guests', 1, type=int)
-        special_requests = request.form.get('special_requests', '').strip()
+        # Extract and sanitize form data
+        try:
+            sanitized_data = input_sanitizer.sanitize_booking_data({
+                'guest_name': request.form.get('guest_name', '').strip(),
+                'guest_email': request.form.get('guest_email', '').strip(),
+                'guest_phone': request.form.get('guest_phone', '').strip(),
+                'special_requests': request.form.get('special_requests', '').strip(),
+                'num_guests': request.form.get('num_guests', 1, type=int),
+                'start_date': request.form.get('start_date'),
+                'end_date': request.form.get('end_date')
+            })
+        except ValueError as e:
+            return jsonify({'errors': [str(e)]}), 400
         
-        # Validation
+        # Additional validation
         errors = []
-        if not guest_name:
+        if not sanitized_data['guest_name']:
             errors.append('Guest name is required')
-        if not guest_email:
+        if not sanitized_data['guest_email']:
             errors.append('Email address is required')
-        if not start_date_str:
+        if not sanitized_data['start_date']:
             errors.append('Check-in date is required')
-        if not end_date_str:
+        if not sanitized_data['end_date']:
             errors.append('Check-out date is required')
         
         # Parse dates
         try:
-            start_date = datetime.fromisoformat(start_date_str)
-            end_date = datetime.fromisoformat(end_date_str)
-        except ValueError:
+            start_date = datetime.fromisoformat(sanitized_data['start_date'])
+            end_date = datetime.fromisoformat(sanitized_data['end_date'])
+        except (ValueError, TypeError):
             errors.append('Invalid date format')
         
         # Date validation
@@ -65,15 +71,15 @@ def booking_request():
                 'conflicts': availability['conflicts']
             }), 409
         
-        # Create booking request
+        # Create booking request with sanitized data
         booking = BookingRequest(
-            guest_name=guest_name,
-            guest_email=guest_email,
-            guest_phone=guest_phone,
+            guest_name=sanitized_data['guest_name'],
+            guest_email=sanitized_data['guest_email'],
+            guest_phone=sanitized_data['guest_phone'],
             start_date=start_date,
             end_date=end_date,
-            num_guests=num_guests,
-            special_requests=special_requests,
+            num_guests=sanitized_data['num_guests'],
+            special_requests=sanitized_data['special_requests'],
             status='pending',
             approval_token=secrets.token_urlsafe(32)
         )
