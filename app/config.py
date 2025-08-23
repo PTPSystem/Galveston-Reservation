@@ -74,7 +74,7 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-super-secret-key-here-change-this')
     
     # Booking Approval Tokens
-    APPROVAL_TOKEN_SECRET = os.getenv('APPROVAL_TOKEN_SECRET', 'replace-me-token')
+    APPROVAL_TOKEN_SECRET = os.getenv('APPROVAL_TOKEN_SECRET', 'NfjpI79JUbvtVe6VgqQOwig6RrE0XYmUdzJ7K0DU9wo')
     TOKEN_EXPIRATION_HOURS = int(os.getenv('TOKEN_EXPIRATION_HOURS', '48'))
     
     # =============================================================================
