@@ -1,0 +1,48 @@
+name: galveston-staging
+
+services:
+  app-staging:
+    build: .
+    image: galveston-reservation:staging
+    env_file: [.env.staging]
+    environment:
+      # Staging database
+      DATABASE_URL: postgresql+psycopg2://app_staging:staging_pass@db-staging:5432/galveston_staging
+      GOOGLE_CREDENTIALS_PATH: /run/secrets/service-account-staging.json
+      # Staging-specific settings
+      FLASK_ENV: staging
+      DEBUG: true
+      BOOKING_APPROVAL_EMAIL: staging-admin@yourdomain.com
+      BOOKING_NOTIFICATION_EMAILS: staging-notifications@yourdomain.com
+      BASE_URL: http://83.229.35.162:8081  # Different port for staging
+      # Security settings (use separate keys for staging)
+      APPROVAL_TOKEN_SECRET: your-staging-approval-secret-key-here
+    volumes:
+      - ./secrets/service-account-staging.json:/run/secrets/service-account-staging.json:ro
+      - staging-logs:/app/logs
+    depends_on:
+      - db-staging
+    ports:
+      - "8081:8080"   # Different port from production
+    restart: unless-stopped
+
+  db-staging:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: galveston_staging
+      POSTGRES_USER: app_staging
+      POSTGRES_PASSWORD: staging_pass
+    volumes:
+      - pgdata-staging:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"   # Different port for staging DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_staging -d galveston_staging"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata-staging:
+  staging-logs:
