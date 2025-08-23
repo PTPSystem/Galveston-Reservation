@@ -12,13 +12,17 @@ class EmailService:
     """Service for sending emails and managing email workflows"""
     
     def __init__(self):
-        self.admin_email = os.getenv('ADMIN_EMAIL', 'admin@ptpsystem.com')
-        self.notification_emails = os.getenv('NOTIFICATION_EMAILS', '').split(',')
-        self.base_url = os.getenv('BASE_URL', 'https://str.ptpsystem.com')
+        # Import config here to avoid circular imports
+        from app.config import config
+        
+        self.admin_email = config.BOOKING_APPROVAL_EMAIL
+        self.notification_emails = config.BOOKING_NOTIFICATION_EMAILS
+        self.base_url = config.BASE_URL
         
     def _get_serializer(self):
         """Get URL serializer for secure tokens"""
-        secret_key = os.getenv('APPROVAL_TOKEN_SECRET', current_app.config['SECRET_KEY'])
+        from app.config import config
+        secret_key = config.APPROVAL_TOKEN_SECRET or current_app.config['SECRET_KEY']
         return URLSafeTimedSerializer(secret_key)
     
     def generate_approval_token(self, booking_id):

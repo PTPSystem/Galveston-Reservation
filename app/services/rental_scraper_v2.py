@@ -12,8 +12,11 @@ from typing import Dict, List, Optional
 
 class GalvestonRentalScraper:
     def __init__(self):
+        # Import config here to avoid circular imports
+        from app.config import config
+        
         self.base_url = "https://www.galvestonislandresortrentals.com"
-        self.property_url = f"{self.base_url}/galveston-vacation-rentals/bayfront-retreat"
+        self.property_url = config.PROPERTY_MANAGEMENT_URL
         self.logger = logging.getLogger(__name__)
         
         # Headers that work with the website

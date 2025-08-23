@@ -3,7 +3,7 @@ Calendar Synchronization Service
 Synchronizes availability between Google Calendar and rental booking website
 """
 from app.services.google_calendar import GoogleCalendarService
-from app.services.rental_scraper import GalvestonRentalScraper
+from app.services.rental_scraper_v2 import GalvestonRentalScraper
 from datetime import datetime, timedelta
 import logging
 from typing import Dict, List

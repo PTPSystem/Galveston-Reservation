@@ -16,9 +16,12 @@ class GoogleCalendarService:
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     
     def __init__(self):
+        # Import config here to avoid circular imports
+        from app.config import config
+        
         self.service = None
-        self.calendar_id = os.getenv('GOOGLE_CALENDAR_ID', 'livingbayfront@gmail.com')
-        self.credentials_path = os.getenv('GOOGLE_CREDENTIALS_PATH', './secrets/service-account.json')
+        self.calendar_id = config.GOOGLE_CALENDAR_ID
+        self.credentials_path = config.GOOGLE_CREDENTIALS_PATH
         self._authenticate()
     
     def _authenticate(self):
