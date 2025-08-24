@@ -43,6 +43,15 @@ sanitized_data = input_sanitizer.sanitize_booking_data(form_data)
 safe_text = input_sanitizer.sanitize_text(user_input)
 ```
 
+**Server Management**
+All server management activity will be done via Remote Shell Execution.  Currently there is only one server on with howard@83.229.35.162 with 4 docker containers.
+- galveston-staging-app-staging-1
+- galveston-staging-db-staging-1
+- galveston-stack-app-1
+- galveston-stack-db-1
+
+2 staging docker containers are for staging and 2 stack docker containers are for production.
+
 **API & External Services:**
 - `google-api-python-client` - Google Calendar integration
 - `requests` - HTTP client
