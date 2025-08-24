@@ -16,7 +16,7 @@ services:
       BOOKING_NOTIFICATION_EMAILS: staging-notifications@yourdomain.com
       BASE_URL: http://83.229.35.162:8081  # Different port for staging
       # Security settings (use separate keys for staging)
-      APPROVAL_TOKEN_SECRET: your-staging-approval-secret-key-here
+      APPROVAL_TOKEN_SECRET: your-staging-approval-secret-key-32-chars-min
     volumes:
       - ./secrets/service-account-staging.json:/run/secrets/service-account-staging.json:ro
       - staging-logs:/app/logs
