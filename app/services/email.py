@@ -640,3 +640,43 @@ class EmailService:
         except Exception as e:
             print(f"Error sending guest rejection: {e}")
             return False
+
+    def send_stakeholder_notification(self, subject: str, message: str, recipients: list) -> bool:
+        """Send notification to stakeholders about booking changes"""
+        try:
+            from flask_mail import Message
+            from app import mail
+            
+            msg = Message(
+                subject=subject,
+                sender=self.base_url.replace('http://', '').replace('https://', ''),
+                recipients=recipients,
+                body=message
+            )
+            
+            mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending stakeholder notification: {e}")
+            return False
+
+    def send_guest_notification(self, subject: str, message: str, recipient: str) -> bool:
+        """Send notification to guest about booking changes"""
+        try:
+            from flask_mail import Message
+            from app import mail
+            
+            msg = Message(
+                subject=subject,
+                sender=self.base_url.replace('http://', '').replace('https://', ''),
+                recipients=[recipient],
+                body=message
+            )
+            
+            mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending guest notification: {e}")
+            return False
