@@ -54,8 +54,8 @@ class Config:
     APP_URL = os.getenv('APP_URL', 'https://str.ptpsystem.com')
     DOMAIN_NAME = os.getenv('DOMAIN_NAME', 'str.ptpsystem.com')
     
-    # Alias for backward compatibility
-    BASE_URL = APP_URL
+    # BASE_URL can be overridden independently from APP_URL (for staging)
+    BASE_URL = os.getenv('BASE_URL', APP_URL)
     
     # Booking Configuration
     BOOKING_ADVANCE_DAYS = int(os.getenv('BOOKING_ADVANCE_DAYS', '365'))  # How far ahead bookings can be made
