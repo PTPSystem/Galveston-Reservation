@@ -285,12 +285,20 @@ def approve_booking(token):
         db.session.commit()
         
         # Step 3b: Send notifications to all parties (without guest name)
-        notification_emails = [
-            'livingbayfront@gmail.com',
-            'info@galvestonislandresortrentals.com', 
-            'michelle.kleensweep@gmail.com',
-            'alicia.kleensweep@gmail.com'
-        ]
+        from app.config import config
+        import os
+        
+        # Use different notification emails based on environment
+        if os.getenv('FLASK_ENV') == 'staging':
+            notification_emails = ['howard.shen@gmail.com']
+        else:
+            # Production environment - send to all stakeholders
+            notification_emails = [
+                'livingbayfront@gmail.com',
+                'info@galvestonislandresortrentals.com', 
+                'michelle.kleensweep@gmail.com',
+                'alicia.kleensweep@gmail.com'
+            ]
         
         email_service.send_booking_notifications(booking, notification_emails)
         
